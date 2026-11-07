@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 420px; margin: 0; font: 13px system-ui, sans-serif; background: #1e1f22; color: #e6e6e6; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid #333; }
+  h1 { font-size: 14px; margin: 0; }
+  button { background: #3a3d44; color: #eee; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
+  button:hover { background: #4a4e57; }
+  button.primary { background: #e53935; }
+  button.primary:hover { background: #f4511e; }
+  ul { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow: auto; }
+  li { padding: 10px 12px; border-bottom: 1px solid #2c2d31; }
+  .url { word-break: break-all; color: #aab; font-size: 11px; margin: 4px 0 8px; }
+  .name { font-weight: 600; }
+  .row { display: flex; gap: 6px; }
+  .empty { padding: 24px 12px; color: #889; text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>HLS Grabber</h1>
+  <button id="clear">クリア</button>
+</header>
+<ul id="list"></ul>
+<script src="popup.js"></script>
+</body>
+</html>
