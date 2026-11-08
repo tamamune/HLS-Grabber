@@ -58,8 +58,18 @@
     <div class="row" style="margin-bottom:10px">
       <input type="text" id="name" placeholder="ファイル名">
     </div>
+    <div class="row" style="margin-bottom:10px">
+      <span class="sub">名前テンプレート</span>
+      <input type="text" id="nameTpl" value="{title}_{date}" style="flex:1;width:auto">
+      <span class="sub">{title} {date} {time}</span>
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <label><input type="checkbox" id="toMp4"> MP4に変換して保存（.ts の場合・ffmpeg.wasm）</label>
+      <label id="mergeRow" hidden><input type="checkbox" id="merge" checked> 映像と音声を結合</label>
+    </div>
     <div class="row">
       <span class="sub">同時接続数</span><input type="number" id="conc" value="6" min="1" max="16">
+      <span class="sub">ライブ自動停止(分, 0=なし)</span><input type="number" id="autostop" value="0" min="0" max="1440">
       <span style="flex:1"></span>
       <button class="primary" id="start">ダウンロード開始</button>
     </div>

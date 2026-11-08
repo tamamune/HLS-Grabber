@@ -5,6 +5,7 @@
   "description": "ページ内のHLS (m3u8) ストリームを検出して、ダウンロード・ライブ録画します。",
   "permissions": ["webRequest", "storage", "downloads", "declarativeNetRequest", "tabs"],
   "host_permissions": ["<all_urls>"],
+  "content_security_policy": { "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'" },
   "background": { "service_worker": "background.js" },
   "action": { "default_popup": "popup.html", "default_title": "HLS Grabber" }
 }

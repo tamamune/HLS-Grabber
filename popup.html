@@ -15,6 +15,12 @@
   .url { word-break: break-all; color: #aab; font-size: 11px; margin: 4px 0 8px; }
   .name { font-weight: 600; }
   .row { display: flex; gap: 6px; }
+  .item { display: flex; gap: 10px; align-items: flex-start; }
+  .thumb { flex: none; width: 112px; height: 63px; border-radius: 6px; background: #15161a; color: #667; font-size: 11px;
+    display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; white-space: pre-line; }
+  li.heading { position: sticky; top: 0; background: #26282d; font-weight: 600; font-size: 12px; color: #aab; padding: 6px 12px; }
+  .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .body { flex: 1; min-width: 0; }
   .empty { padding: 24px 12px; color: #889; text-align: center; line-height: 1.6; }
 </style>
 </head>
@@ -24,6 +30,6 @@
   <button id="clear">クリア</button>
 </header>
 <ul id="list"></ul>
-<script src="popup.js"></script>
+<script type="module" src="popup.js"></script>
 </body>
 </html>

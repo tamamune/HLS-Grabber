@@ -1,4 +1,4 @@
-import { parsePlaylist, importAesKey, decryptSegment } from './lib/hls.js';
+import { parsePlaylist, importAesKey, decryptSegment, vttChunk } from './lib/hls.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -17,6 +17,24 @@ const sanitize = (s) =>
   s.replace(/[\\/:*?"<>|~\u0000-\u001f]/g, '_').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 120) || 'video';
 
 let running = false;
+
+// ---------- 設定の保存 ----------
+const SETTINGS_KEY = 'settings';
+const DEFAULTS = { conc: 6, nameTpl: '{title}_{date}', autostop: 0, toMp4: false, merge: true };
+async function loadSettings() {
+  try { return { ...DEFAULTS, ...((await chrome.storage.local.get(SETTINGS_KEY))[SETTINGS_KEY] || {}) }; } catch { return { ...DEFAULTS }; }
+}
+function saveSettings() {
+  const s = { conc: +$('conc').value || 6, nameTpl: $('nameTpl').value, autostop: +$('autostop').value || 0, toMp4: $('toMp4').checked, merge: $('merge').checked };
+  chrome.storage.local.set({ [SETTINGS_KEY]: s }).catch(() => {});
+}
+function buildName(tpl) {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  const date = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+  const time = `${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  return sanitize((tpl || '{title}').replace(/\{title\}/g, pageTitle).replace(/\{date\}/g, date).replace(/\{time\}/g, time));
+}
 
 // ---------- Referer / Origin をページに合わせる ----------
 let ruleId = null;
@@ -108,8 +126,18 @@ async function cleanupOldTemp() {
 }
 
 // ---------- ダウンロード本体 ----------
-async function run(playlistUrl, baseName) {
+async function run(playlistUrl, baseName, opts = {}) {
+  const { isSub = false } = opts;
+  const toMp4 = $('toMp4').checked;
+  saveSettings();
+  const autostop = Math.max(0, +$('autostop').value || 0);
   const conc = Math.max(1, Math.min(16, +$('conc').value || 6));
+  // 別トラック音声の結合: 先に音声を取得しておく
+  let aud = null;
+  if (opts.audioUrl) {
+    aud = await run(opts.audioUrl, baseName, { collect: true, label: '音声' });
+    if (!aud) return; // 中止された
+  }
   const ctl = new AbortController();
   const signal = ctl.signal;
 
@@ -120,8 +148,10 @@ async function run(playlistUrl, baseName) {
   if (!pl.segments.length) throw new Error('セグメントがありません');
 
   const live = !pl.ended;
-  const isFmp4 = pl.segments.some((s) => s.map) || /\.(m4s|mp4|m4a|m4v)(\?|$)/i.test(pl.segments[0].url);
-  const ext = isFmp4 ? (/\.m4a(\?|$)/i.test(pl.segments[0].url) ? 'm4a' : 'mp4') : 'ts';
+  if (live && (opts.collect || opts.audioUrl)) throw new Error('ライブ配信では音声の結合はできません。「音声を結合」のチェックを外してください');
+  const isVtt = isSub || /\.(vtt|webvtt)(\?|$)/i.test(pl.segments[0].url);
+  const isFmp4 = !isVtt && (pl.segments.some((s) => s.map) || /\.(m4s|mp4|m4a|m4v)(\?|$)/i.test(pl.segments[0].url));
+  const ext = isVtt ? 'vtt' : isFmp4 ? (/\.m4a(\?|$)/i.test(pl.segments[0].url) ? 'm4a' : 'mp4') : 'ts';
 
   const sink = new Sink();
   await sink.open(`tmp_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`);
@@ -132,7 +162,7 @@ async function run(playlistUrl, baseName) {
   addSegs(live ? pl.segments.slice(-3) : pl.segments); // ライブは「今」から録画
 
   let dispatched = 0, written = 0, inflight = 0, failed = 0, durSum = 0;
-  let polling = live, aborted = false, lastMapKey = null, finishResolve;
+  let polling = live, aborted = false, lastMapKey = null, wroteAny = false, finishResolve;
   const results = new Map();
   const keyCache = new Map();
   const mapCache = new Map();
@@ -179,7 +209,8 @@ async function run(playlistUrl, baseName) {
               lastMapKey = k;
             }
           }
-          await sink.write(r.buf);
+          await sink.write(isVtt ? vttChunk(r.buf, wroteAny).buffer : r.buf);
+          wroteAny = true;
           durSum += seg.dur;
         }
         written++;
@@ -220,7 +251,8 @@ async function run(playlistUrl, baseName) {
       rafPending = false;
       if (uiDone) return;
       const sec = (performance.now() - t0) / 1000;
-      $('status').textContent = live ? (polling ? '● ライブ録画中' : '保存処理中…') : `ダウンロード中 ${Math.floor((written / queue.length) * 100)}%`;
+      $('status').textContent = live ? (polling ? '● ライブ録画中' : '保存処理中…') : `${opts.label ? opts.label + ': ' : ''}ダウンロード中 ${Math.floor((written / queue.length) * 100)}%`;
+      document.title = live ? `● 録画中 ${fmtDur(durSum)} - HLS Grabber` : `${Math.floor((written / queue.length) * 100)}% - HLS Grabber`;
       $('bar').firstElementChild.style.width = live ? '100%' : `${(written / queue.length) * 100}%`;
       $('sSeg').textContent = live ? String(written) : `${written} / ${queue.length}`;
       $('sSize').textContent = fmtSize(sink.size);
@@ -244,6 +276,9 @@ async function run(playlistUrl, baseName) {
     ctl.abort();
     finishResolve();
   };
+
+  // ライブ: 指定時間で自動停止
+  if (live && autostop > 0) setTimeout(() => { if (polling && !$('stop').disabled) $('stop').click(); }, autostop * 60 * 1000);
 
   // ライブ: プレイリストを定期的に再取得
   if (live) {
@@ -293,22 +328,69 @@ async function run(playlistUrl, baseName) {
     throw new Error('1つもセグメントを取得できませんでした');
   }
 
-  $('status').textContent = 'ファイルを書き出しています…';
-  const type = isFmp4 ? 'video/mp4' : 'video/mp2t';
-  const blob = new Blob([await sink.blob(type)], { type });
-  const url = URL.createObjectURL(blob);
-  const id = await chrome.downloads.download({ url, filename: `${sanitize(baseName)}.${ext}` });
-  chrome.downloads.onChanged.addListener(function onChange(d) {
-    if (d.id === id && d.state && d.state.current !== 'in_progress') {
-      chrome.downloads.onChanged.removeListener(onChange);
-      URL.revokeObjectURL(url);
-      sink.cleanup();
+  if (opts.collect) return { sink, ext, failed };
+
+  const base = sanitize(baseName);
+  const sinks = [sink];
+  const cleanupAll = () => sinks.forEach((x) => x.cleanup());
+  const mimeOf = (e) => (e === 'vtt' ? 'text/vtt' : e === 'ts' ? 'video/mp2t' : e === 'm4a' ? 'audio/mp4' : 'video/mp4');
+  const toBlob = async (sk, e) => new Blob([await sk.blob(mimeOf(e))], { type: mimeOf(e) });
+  const saveBlob = async (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const id = await chrome.downloads.download({ url, filename });
+    return new Promise((resolve) => {
+      chrome.downloads.onChanged.addListener(function onChange(d) {
+        if (d.id === id && d.state && d.state.current !== 'in_progress') {
+          chrome.downloads.onChanged.removeListener(onChange);
+          URL.revokeObjectURL(url);
+          resolve();
+        }
+      });
+    });
+  };
+
+  document.title = '書き出し中 - HLS Grabber';
+  const saved = [];
+  const mainBlob = await toBlob(sink, ext);
+  const audBlob = aud ? await toBlob(aud.sink, aud.ext) : null;
+  if (aud) sinks.push(aud.sink);
+
+  let mp4 = null;
+  if (!isVtt && (aud || (toMp4 && ext === 'ts'))) {
+    $('status').textContent = 'MP4 に変換しています…（ffmpeg.wasm）';
+    try {
+      const { toMp4: convert } = await import('./lib/convert.js');
+      mp4 = await convert(
+        { blob: mainBlob, ext },
+        aud ? { blob: audBlob, ext: aud.ext } : null,
+        (r) => { $('status').textContent = `MP4 に変換しています… ${Math.floor(r * 100)}%`; },
+      );
+    } catch (e) {
+      console.error(e);
+      showError(new Error('MP4 変換に失敗したため、元の形式で保存します: ' + (e?.message || e)));
     }
-  });
+  }
+
+  $('status').textContent = 'ファイルを書き出しています…';
+  const pending = [];
+  if (mp4) {
+    pending.push(saveBlob(mp4, `${base}.mp4`));
+    saved.push(`${base}.mp4`);
+  } else {
+    pending.push(saveBlob(mainBlob, `${base}.${ext}`));
+    saved.push(`${base}.${ext}`);
+    if (aud) {
+      pending.push(saveBlob(audBlob, `${base}_audio.${aud.ext}`));
+      saved.push(`${base}_audio.${aud.ext}`);
+    }
+  }
+  const totalSize = sink.size + (aud ? aud.sink.size : 0);
+  Promise.all(pending).then(cleanupAll, cleanupAll);
+  document.title = '完了 - HLS Grabber';
   $('status').innerHTML = '';
   const ok = document.createElement('span');
   ok.className = 'ok';
-  ok.textContent = `保存しました: ${sanitize(baseName)}.${ext}（${fmtSize(sink.size)}${failed ? `、失敗 ${failed} 件` : ''}）`;
+  ok.textContent = `保存しました: ${saved.join(' , ')}（${fmtSize(totalSize)}${failed ? `、失敗 ${failed} 件` : ''}）`;
   $('status').appendChild(ok);
 }
 
@@ -341,7 +423,14 @@ async function describeMedia(url) {
 
 async function init() {
   $('src').textContent = srcUrl || '(URL なし)';
-  $('name').value = sanitize(pageTitle);
+  const st = await loadSettings();
+  $('conc').value = st.conc;
+  $('autostop').value = st.autostop;
+  $('nameTpl').value = st.nameTpl;
+  $('toMp4').checked = st.toMp4;
+  $('merge').checked = st.merge;
+  $('name').value = buildName(st.nameTpl);
+  $('nameTpl').oninput = () => { $('name').value = buildName($('nameTpl').value); };
   cleanupOldTemp();
   if (!srcUrl) return showError('URL が指定されていません');
   await setupReferer();
@@ -358,19 +447,28 @@ async function init() {
     pl.variants.forEach((v, i) => {
       const mbps = v.bandwidth ? (v.bandwidth / 1e6).toFixed(2) + ' Mbps' : '';
       const sep = !!(v.audio && pl.audios.some((a) => a.group === v.audio));
-      addOption(v.resolution || `画質 ${i + 1}`, [mbps, v.codecs, sep ? '音声別' : ''].filter(Boolean).join(' · '), v.url, i === 0, { sep: sep ? '1' : '' });
+      addOption(v.resolution || `画質 ${i + 1}`, [mbps, v.codecs, sep ? '音声別' : ''].filter(Boolean).join(' · '), v.url, i === 0, { sep: sep ? '1' : '', agroup: v.audio || '' });
     });
     const seen = new Set();
     for (const a of pl.audios) {
       if (seen.has(a.url)) continue;
       seen.add(a.url);
-      addOption(`音声: ${a.name || a.lang || a.group}`, a.lang, a.url, false, { audio: '1' });
+      addOption(`音声: ${a.name || a.lang || a.group}`, a.lang, a.url, false, { audio: '1', group: a.group || '' });
+    }
+    const seenSub = new Set();
+    for (const s of pl.subs || []) {
+      if (seenSub.has(s.url)) continue;
+      seenSub.add(s.url);
+      addOption(`字幕: ${s.name || s.lang || s.group}`, s.lang, s.url, false, { sub: '1' });
     }
     const updateNote = () => {
       const sel = document.querySelector('input[name=track]:checked');
-      $('audioNote').hidden = !(sel && sel.dataset.sep);
+      const sep = !!(sel && sel.dataset.sep);
+      $('audioNote').hidden = !sep || $('merge').checked;
+      $('mergeRow').hidden = !sep;
     };
     $('options').addEventListener('change', updateNote);
+    $('merge').addEventListener('change', updateNote);
     updateNote();
     $('pick').hidden = false;
   } else {
@@ -381,12 +479,17 @@ async function init() {
   $('start').onclick = async () => {
     const sel = document.querySelector('input[name=track]:checked');
     const url = sel ? sel.value : srcUrl;
-    const name = ($('name').value || 'video') + (sel?.dataset.audio ? '_audio' : '');
+    const name = ($('name').value || 'video') + (sel?.dataset.audio ? '_audio' : sel?.dataset.sub ? '_sub' : '');
     $('start').disabled = true;
     $('error').textContent = '';
     running = true;
     try {
-      await run(url, name);
+      let audioUrl = null;
+      if (sel?.dataset.sep && $('merge').checked) {
+        const a = [...document.querySelectorAll('input[data-audio="1"]')].find((x) => x.dataset.group === sel.dataset.agroup);
+        audioUrl = a ? a.value : null;
+      }
+      await run(url, name, { isSub: !!sel?.dataset.sub, audioUrl });
     } catch (e) {
       showError(e);
       $('status').textContent = '失敗しました';

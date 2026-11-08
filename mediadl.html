@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>HLS Grabber - 保存</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #17181b; color: #e6e6e6; }
+  main { max-width: 640px; margin: 40px auto; padding: 0 20px; }
+  h1 { font-size: 18px; }
+  .bar { height: 10px; background: #15161a; border-radius: 5px; overflow: hidden; margin: 12px 0; }
+  .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #e53935, #ff7043); transition: width .2s; }
+  .err { color: #ff6b6b; white-space: pre-wrap; }
+  .ok { color: #66bb6a; }
+  .sub { color: #889; font-size: 12px; word-break: break-all; }
+</style>
+</head>
+<body>
+<main>
+  <h1>動画を保存しています</h1>
+  <div id="status">準備中…</div>
+  <div class="bar"><div id="bar"></div></div>
+  <div id="error" class="err"></div>
+  <div class="sub" id="detail"></div>
+</main>
+<script type="module" src="mediadl.js"></script>
+</body>
+</html>

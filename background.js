@@ -10,17 +10,69 @@ function isOwn(details) {
   return details.initiator && details.initiator.startsWith('chrome-extension://');
 }
 
-function add(tabId, url) {
+const MAX_ITEMS = 300;
+
+// kind: 'hls'（既定）/ 'image' / 'video'（MP4）。extra: 表示用の補足
+function add(tabId, url, kind = 'hls', extra = {}) {
   if (tabId < 0) return;
   serial(async () => {
     const k = KEY(tabId);
     const list = (await chrome.storage.session.get(k))[k] || [];
     if (list.some((x) => x.url === url)) return;
-    list.push({ url, time: Date.now() });
+    list.push({ url, kind, time: Date.now(), ...extra });
+    if (list.length > MAX_ITEMS) list.shift();
     await chrome.storage.session.set({ [k]: list });
     await chrome.action.setBadgeBackgroundColor({ tabId, color: '#e53935' });
     await chrome.action.setBadgeText({ tabId, text: String(list.length) });
   });
+}
+
+// ---- Instagram ----
+const isIgHost = (h) => (h.endsWith('.cdninstagram.com') || h.endsWith('.fbcdn.net')) && !h.startsWith('static.');
+
+// key で重複を判定し、より大きい画像（w）が来たら差し替える
+function addKeyed(tabId, key, item) {
+  if (tabId < 0) return;
+  serial(async () => {
+    const k = KEY(tabId);
+    const list = (await chrome.storage.session.get(k))[k] || [];
+    const i = list.findIndex((x) => x.key === key);
+    if (i >= 0) {
+      if ((item.w || 0) <= (list[i].w || 0)) return;
+      list[i] = { ...list[i], ...item, key };
+    } else {
+      list.push({ ...item, key, time: Date.now() });
+      if (list.length > MAX_ITEMS) list.shift();
+    }
+    await chrome.storage.session.set({ [k]: list });
+    await chrome.action.setBadgeBackgroundColor({ tabId, color: '#e53935' });
+    await chrome.action.setBadgeText({ tabId, text: String(list.length) });
+  });
+}
+
+function handleInstagram(d, u) {
+  const file = u.pathname.split('/').pop();
+  if (/\.mp4$/i.test(file)) {
+    // DASH の分割取得 (bytestart/byteend) を外すと全体のファイルになる
+    const clean = new URL(u.href);
+    clean.searchParams.delete('bytestart');
+    clean.searchParams.delete('byteend');
+    let tag = '';
+    try {
+      const efg = (u.searchParams.get('efg') || '').replace(/-/g, '+').replace(/_/g, '/');
+      tag = JSON.parse(atob(efg)).vencode_tag || '';
+    } catch {}
+    const stream = /audio/i.test(tag) ? 'audio' : 'video';
+    const res = (tag.match(/(\d{3,4})p/) || [])[1] || '';
+    addKeyed(d.tabId, 'v:' + u.pathname, {
+      url: clean.href, kind: 'igvideo', stream, res: res ? res + 'p' : '', progressive: /progressive/i.test(tag), id: file.replace(/\.mp4$/i, '').slice(0, 24),
+    });
+  } else if (d.type === 'image' && /\.(jpe?g|png|webp|heic)$/i.test(file)) {
+    if (u.pathname.includes('t51.2885-19')) return; // プロフィール画像
+    const m = u.searchParams.get('stp') || '';
+    const w = +((m.match(/[ps](\d{3,4})x\d{3,4}/) || [])[1] || 0);
+    addKeyed(d.tabId, 'i:' + u.pathname, { url: u.href, kind: 'igimage', w, id: file.replace(/\.\w+$/, '').slice(0, 24), fmt: file.split('.').pop().toLowerCase() });
+  }
 }
 
 function clear(tabId) {
@@ -36,7 +88,24 @@ chrome.webRequest.onBeforeRequest.addListener(
     if (d.type === 'main_frame') { clear(d.tabId); return; }
     if (isOwn(d)) return;
     try {
-      if (M3U8_RE.test(new URL(d.url).pathname)) add(d.tabId, d.url);
+      const u = new URL(d.url);
+      if (M3U8_RE.test(u.pathname)) return add(d.tabId, d.url);
+      // X (Twitter): 画像は原寸 URL に正規化、動画は MP4 を拾う
+      if (u.hostname === 'pbs.twimg.com' && u.pathname.startsWith('/media/')) {
+        const m = u.pathname.slice(7).match(/^([\w-]+)(?:\.(\w+))?/);
+        if (!m) return;
+        const fmt = u.searchParams.get('format') || m[2] || 'jpg';
+        add(d.tabId, `https://pbs.twimg.com/media/${m[1]}?format=${fmt}&name=orig`, 'image', { id: m[1], fmt });
+      } else if (u.hostname === 'video.twimg.com' && /\.mp4$/i.test(u.pathname)) {
+        const r = u.pathname.match(/\/(\d+)x(\d+)\//);
+        add(d.tabId, u.origin + u.pathname, 'video', { res: r ? `${r[1]}x${r[2]}` : '' });
+      } else if (isIgHost(u.hostname)) {
+        // initiator で判定できないときは、タブの URL が Instagram かで判定する
+        if (/instagram\.com/.test(d.initiator || '')) handleInstagram(d, u);
+        else if (d.tabId >= 0) {
+          chrome.tabs.get(d.tabId).then((t) => { if (/instagram\.com/.test(t.url || '')) handleInstagram(d, u); }).catch(() => {});
+        }
+      }
     } catch {}
   },
   { urls: ['<all_urls>'] }
