@@ -13,6 +13,7 @@
 - `popup.html` / `popup.js` — 検出一覧UI
 - `downloader.html` / `downloader.js` — ダウンロード・録画本体（OPFS一時保存、ffmpeg.wasm連携）
 - `mediadl.html` / `mediadl.js` — X/Instagram等の単体メディア保存
+- `gallery.html` / `gallery.js` — X/Instagram の画像・動画を大きなサムネで表示して保存する別タブ（ポップアップの「大きく表示」から開く。サイズスライダー、画像一括保存あり）
 - `lib/` — 同梱ライブラリ（ffmpeg.wasm 0.12 など）
 
 ## 作業ルール（PC間の同期）
@@ -24,4 +25,5 @@
 
 ## 引き継ぎメモ
 <!-- 新しいものを上に追記。例: 2026-11-09 (PC名) 内容 -->
+- 2026-11-09: gallery.html/js を追加（未実機確認）。
 - 2026-11-09: 共有用に CLAUDE.md を追加。現状 main は v0.1.0 + 機能追加（MP4変換・音声結合・字幕・サムネ・X/Instagram対応）。

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>HLS Grabber - ギャラリー</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #17181b; color: #e6e6e6; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; gap: 12px; align-items: center; padding: 10px 20px; background: #1e1f22; border-bottom: 1px solid #333; }
+  header h1 { font-size: 16px; margin: 0; flex: 1; }
+  header label { color: #aab; font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  button { background: #3a3d44; color: #eee; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+  button:hover { background: #4a4e57; }
+  button.primary { background: #e53935; }
+  button.primary:hover { background: #f4511e; }
+  main { padding: 16px 20px 40px; }
+  h2 { font-size: 14px; color: #aab; margin: 24px 0 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--size, 360px), 1fr)); gap: 14px; }
+  .card { background: #1e1f22; border: 1px solid #2c2d31; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+  .media { background: #0e0f11; height: calc(var(--size, 360px) * 0.9); display: flex; align-items: center; justify-content: center; }
+  .media img, .media video { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .info { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+  .info .label { flex: 1; min-width: 0; font-size: 12px; color: #aab; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .empty { padding: 60px 0; color: #889; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>検出したメディア</h1>
+  <label>サイズ <input type="range" id="size" min="200" max="800" step="20" value="360"></label>
+  <button id="reload">更新</button>
+  <button id="all" class="primary">画像をすべて保存</button>
+</header>
+<main id="main"></main>
+<script type="module" src="gallery.js"></script>
+</body>
+</html>

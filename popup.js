@@ -6,6 +6,9 @@ import { getThumb } from './lib/thumb.js';
   const list = (await chrome.storage.session.get(k))[k] || [];
   const ul = document.getElementById('list');
 
+  document.getElementById('gallery').onclick = () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL(`gallery.html?tab=${tab.id}`) });
+  };
   document.getElementById('clear').onclick = async () => {
     await chrome.storage.session.remove(k);
     await chrome.action.setBadgeText({ tabId: tab.id, text: '' });
