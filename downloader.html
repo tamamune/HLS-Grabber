@@ -64,7 +64,7 @@
       <span class="sub">{title} {date} {time}</span>
     </div>
     <div class="row" style="margin-bottom:10px">
-      <label><input type="checkbox" id="toMp4"> MP4に変換して保存（.ts の場合・ffmpeg.wasm）</label>
+      <label><input type="checkbox" id="toMp4"> MP4に変換して保存（.ts の場合・サイズ上限なし・ライブも可）</label>
       <label id="mergeRow" hidden><input type="checkbox" id="merge" checked> 映像と音声を結合</label>
     </div>
     <div class="row">
@@ -94,6 +94,7 @@
 
   <div id="error" class="err"></div>
 </main>
+<script src="lib/mux-mp4.min.js"></script>
 <script type="module" src="downloader.js"></script>
 </body>
 </html>

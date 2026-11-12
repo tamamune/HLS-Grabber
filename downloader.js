@@ -125,6 +125,28 @@ async function cleanupOldTemp() {
   } catch {}
 }
 
+// ---------- TS → fMP4 逐次変換 (mux.js) ----------
+// 1セグメントずつ push → flush し、出てきた MP4 断片を返す。init セグメントは最初の1回だけ。
+function makeTransmuxer() {
+  const lib = globalThis.muxjs;
+  const T = lib && (lib.mp4 || lib).Transmuxer;
+  if (!T) throw new Error('mux.js を読み込めませんでした');
+  const t = new T({ remux: true, keepOriginalTimestamps: false });
+  let out = [];
+  let inited = false;
+  t.on('data', (seg) => {
+    if (!inited && seg.initSegment) { out.push(seg.initSegment); inited = true; }
+    if (seg.data && seg.data.byteLength) out.push(seg.data);
+  });
+  return (buf) => {
+    t.push(new Uint8Array(buf));
+    t.flush();
+    const r = out;
+    out = [];
+    return r;
+  };
+}
+
 // ---------- ダウンロード本体 ----------
 async function run(playlistUrl, baseName, opts = {}) {
   const { isSub = false } = opts;
@@ -151,7 +173,11 @@ async function run(playlistUrl, baseName, opts = {}) {
   if (live && (opts.collect || opts.audioUrl)) throw new Error('ライブ配信では音声の結合はできません。「音声を結合」のチェックを外してください');
   const isVtt = isSub || /\.(vtt|webvtt)(\?|$)/i.test(pl.segments[0].url);
   const isFmp4 = !isVtt && (pl.segments.some((s) => s.map) || /\.(m4s|mp4|m4a|m4v)(\?|$)/i.test(pl.segments[0].url));
-  const ext = isVtt ? 'vtt' : isFmp4 ? (/\.m4a(\?|$)/i.test(pl.segments[0].url) ? 'm4a' : 'mp4') : 'ts';
+  let ext = isVtt ? 'vtt' : isFmp4 ? (/\.m4a(\?|$)/i.test(pl.segments[0].url) ? 'm4a' : 'mp4') : 'ts';
+  // TS → MP4 はダウンロード中にセグメントごとに変換してディスクへ書く（サイズ上限なし・ライブも可）。
+  // 別トラック音声の結合は ffmpeg.wasm で後処理する。
+  const tm = toMp4 && ext === 'ts' && !opts.collect && !opts.audioUrl ? makeTransmuxer() : null;
+  if (tm) ext = 'mp4';
 
   const sink = new Sink();
   await sink.open(`tmp_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`);
@@ -209,7 +235,8 @@ async function run(playlistUrl, baseName, opts = {}) {
               lastMapKey = k;
             }
           }
-          await sink.write(isVtt ? vttChunk(r.buf, wroteAny).buffer : r.buf);
+          if (tm) { for (const part of tm(r.buf)) await sink.write(part); }
+          else await sink.write(isVtt ? vttChunk(r.buf, wroteAny).buffer : r.buf);
           wroteAny = true;
           durSum += seg.dur;
         }
@@ -325,6 +352,7 @@ async function run(playlistUrl, baseName, opts = {}) {
   }
   if (sink.size === 0) {
     await sink.cleanup();
+    if (tm && written > failed) throw new Error('MP4 に変換できませんでした。「MP4に変換して保存」のチェックを外して .ts で保存してください');
     throw new Error('1つもセグメントを取得できませんでした');
   }
 
