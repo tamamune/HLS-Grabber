@@ -6,6 +6,11 @@ import { getThumb } from './lib/thumb.js';
   const list = (await chrome.storage.session.get(k))[k] || [];
   const ul = document.getElementById('list');
 
+  // ダウンロードの自動/手動（自動: HLS 検出時にダウンロードタブを裏で開いて開始）
+  const modeSel = document.getElementById('autoMode');
+  try { modeSel.value = (await chrome.storage.local.get('autoMode')).autoMode || 'manual'; } catch {}
+  modeSel.onchange = () => chrome.storage.local.set({ autoMode: modeSel.value });
+
   document.getElementById('gallery').onclick = () => {
     chrome.tabs.create({ url: chrome.runtime.getURL(`gallery.html?tab=${tab.id}`) });
   };

@@ -8,6 +8,7 @@
   h1 { font-size: 14px; margin: 0; }
   button { background: #3a3d44; color: #eee; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
   button:hover { background: #4a4e57; }
+  select { background: #3a3d44; color: #eee; border: 0; border-radius: 6px; padding: 5px 6px; font-size: 12px; cursor: pointer; }
   button.primary { background: #e53935; }
   button.primary:hover { background: #f4511e; }
   ul { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow: auto; }
@@ -27,7 +28,13 @@
 <body>
 <header>
   <h1>HLS Grabber</h1>
-  <span><button id="gallery">大きく表示</button> <button id="clear">クリア</button></span>
+  <span>
+    <select id="autoMode" title="HLS動画を検出したときの動作">
+      <option value="manual">DL: 手動</option>
+      <option value="auto">DL: 自動</option>
+    </select>
+    <button id="gallery">大きく表示</button> <button id="clear">クリア</button>
+  </span>
 </header>
 <ul id="list"></ul>
 <script type="module" src="popup.js"></script>

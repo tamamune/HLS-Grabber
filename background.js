@@ -24,7 +24,43 @@ function add(tabId, url, kind = 'hls', extra = {}) {
     await chrome.storage.session.set({ [k]: list });
     await chrome.action.setBadgeBackgroundColor({ tabId, color: '#e53935' });
     await chrome.action.setBadgeText({ tabId, text: String(list.length) });
+    if (kind === 'hls') scheduleAuto(tabId);
   });
+}
+
+// ---- 自動ダウンロード ----
+// 検出が落ち着くまで少し待ち（マスターと各画質がまとめて来るため）、
+// マスタープレイリストがあればそれを、無ければ最初の m3u8 を1ページにつき1回だけ開始する。
+const AUTO_FLAG = (tabId) => `auto_${tabId}`;
+const autoTimers = new Map();
+function scheduleAuto(tabId) {
+  clearTimeout(autoTimers.get(tabId));
+  autoTimers.set(tabId, setTimeout(() => {
+    autoTimers.delete(tabId);
+    serial(() => runAuto(tabId));
+  }, 2500));
+}
+
+async function runAuto(tabId) {
+  const { autoMode } = await chrome.storage.local.get('autoMode');
+  if (autoMode !== 'auto') return;
+  const fk = AUTO_FLAG(tabId);
+  if ((await chrome.storage.session.get(fk))[fk]) return;
+  const list = ((await chrome.storage.session.get(KEY(tabId)))[KEY(tabId)] || []).filter((x) => (x.kind || 'hls') === 'hls');
+  if (!list.length) return;
+  let pick = null;
+  for (const it of list) {
+    try {
+      const t = await (await fetch(it.url, { cache: 'no-store', credentials: 'include' })).text();
+      if (/#EXT-X-STREAM-INF/.test(t)) { pick = it; break; }
+    } catch {}
+  }
+  pick = pick || list[0];
+  await chrome.storage.session.set({ [fk]: true });
+  let tab = null;
+  try { tab = await chrome.tabs.get(tabId); } catch {}
+  const p = new URLSearchParams({ url: pick.url, referer: tab?.url || '', title: tab?.title || 'video', auto: '1' });
+  await chrome.tabs.create({ url: chrome.runtime.getURL('downloader.html?' + p), active: false, ...(tab ? { index: tab.index + 1, windowId: tab.windowId } : {}) });
 }
 
 // ---- Instagram ----
@@ -77,7 +113,7 @@ function handleInstagram(d, u) {
 
 function clear(tabId) {
   serial(async () => {
-    await chrome.storage.session.remove(KEY(tabId));
+    await chrome.storage.session.remove([KEY(tabId), AUTO_FLAG(tabId)]);
     try { await chrome.action.setBadgeText({ tabId, text: '' }); } catch {}
   });
 }
