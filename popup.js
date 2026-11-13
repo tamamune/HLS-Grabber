@@ -88,6 +88,8 @@ import { getThumb } from './lib/thumb.js';
     }).catch(() => {});
     li.querySelector('.dl').onclick = () => {
       const p = new URLSearchParams({ url: item.url, referer: tab.url || '', title: tab.title || 'video' });
+      // 自動DL のときは、開いたらすぐ開始する（ユーザーが押したのでライブでも開始）
+      if (document.querySelector('input[name=autoMode]:checked')?.value === 'auto') p.set('auto', 'click');
       chrome.tabs.create({ url: chrome.runtime.getURL('downloader.html?' + p) });
     };
     li.querySelector('.copy').onclick = async (e) => {

@@ -509,6 +509,7 @@ async function init() {
     const url = sel ? sel.value : srcUrl;
     const name = ($('name').value || 'video') + (sel?.dataset.audio ? '_audio' : sel?.dataset.sub ? '_sub' : '');
     $('start').disabled = true;
+    $('start').textContent = 'ダウンロード中…';
     $('error').textContent = '';
     running = true;
     try {
@@ -528,7 +529,12 @@ async function init() {
     }
   };
 
-  // 自動モードで開かれた場合: VOD なら既定の画質（最高画質）で開始。ライブは無限に録画しないよう開始しない。
+  // 自動DL でポップアップのボタンから開かれた場合: すぐ開始（ライブも含む）
+  if (params.get('auto') === 'click') {
+    $('start').click();
+    return;
+  }
+  // 検出時に自動で開かれた場合: VOD なら既定の画質（最高画質）で開始。ライブは無限に録画しないよう開始しない。
   if (params.get('auto') === '1') {
     const sel = document.querySelector('input[name=track]:checked');
     const url = sel ? sel.value : srcUrl;

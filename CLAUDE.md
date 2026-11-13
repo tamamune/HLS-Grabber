@@ -25,6 +25,7 @@
 5. 他PCで知っておくべきこと（ハマりどころ、未完了タスク、設計判断）は下の「引き継ぎメモ」に追記する。
 
 ## 引き継ぎメモ
+- 2026-11-13: 自動DL 時にポップアップのボタンから開くと `downloader.html?auto=click` で即開始（ライブも開始）。検出時の自動オープンは `auto=1` でライブは開始しない（自動停止設定時のみ）。実行中は開始ボタンを「ダウンロード中…」表示に。
 - 2026-11-13: 画面デザインを刷新（共通 `ui.css` を追加し popup/downloader/gallery/mediadl を作り直し）。JS が参照する ID・クラスは維持。ポップアップの自動/手動は select からラジオのセグメント（`input[name=autoMode]`）に変更。モックで見た目確認済み、拡張としての実機確認は未。
 - 2026-11-13: ダウンロード自動/手動設定を追加（`chrome.storage.local` の `autoMode`。downloader の `settings` とは別キー＝saveSettings で上書きされないため）。background の scheduleAuto/runAuto、downloader.html?auto=1 で自動開始。未実機確認。
 <!-- 新しいものを上に追記。例: 2026-11-09 (PC名) 内容 -->
