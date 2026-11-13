@@ -25,9 +25,8 @@
 5. 他PCで知っておくべきこと（ハマりどころ、未完了タスク、設計判断）は下の「引き継ぎメモ」に追記する。
 
 ## 引き継ぎメモ
-- 2026-11-13: 自動DL 時にポップアップのボタンから開くと `downloader.html?auto=click` で即開始（ライブも開始）。検出時の自動オープンは `auto=1` でライブは開始しない（自動停止設定時のみ）。実行中は開始ボタンを「ダウンロード中…」表示に。
+- 2026-11-13: 「自動開始」の仕様（ユーザー確認済み）: ポップアップで「ダウンロード」を押して開いた downloader で開始ボタンを自動で押すだけ（`chrome.storage.local.autoMode`=`auto` → `downloader.html?auto=click`）。**ページを開いたときに裏でダウンロードを始める機能は不要**（一度作って削除した）。
 - 2026-11-13: 画面デザインを刷新（共通 `ui.css` を追加し popup/downloader/gallery/mediadl を作り直し）。JS が参照する ID・クラスは維持。ポップアップの自動/手動は select からラジオのセグメント（`input[name=autoMode]`）に変更。モックで見た目確認済み、拡張としての実機確認は未。
-- 2026-11-13: ダウンロード自動/手動設定を追加（`chrome.storage.local` の `autoMode`。downloader の `settings` とは別キー＝saveSettings で上書きされないため）。background の scheduleAuto/runAuto、downloader.html?auto=1 で自動開始。未実機確認。
 <!-- 新しいものを上に追記。例: 2026-11-09 (PC名) 内容 -->
 - 2026-11-12: TS→MP4 変換を ffmpeg.wasm（1.5GB上限）から mux.js の逐次変換に変更し上限を撤廃（未実機確認）。ffmpeg.wasm は wasm32 のメモリ上限（入力＋出力をメモリに載せる）のため 5GB 等には上げられない。音声結合は引き続き ffmpeg.wasm で 1.5GB まで。
 - 2026-11-09: gallery.html/js を追加（未実機確認）。

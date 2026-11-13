@@ -529,26 +529,8 @@ async function init() {
     }
   };
 
-  // 自動DL でポップアップのボタンから開かれた場合: すぐ開始（ライブも含む）
-  if (params.get('auto') === 'click') {
-    $('start').click();
-    return;
-  }
-  // 検出時に自動で開かれた場合: VOD なら既定の画質（最高画質）で開始。ライブは無限に録画しないよう開始しない。
-  if (params.get('auto') === '1') {
-    const sel = document.querySelector('input[name=track]:checked');
-    const url = sel ? sel.value : srcUrl;
-    try {
-      const p = parsePlaylist(await fetchText(url), url);
-      if (p.type === 'media' && !p.ended && !(+$('autostop').value > 0)) {
-        $('info').textContent += '（自動: ライブ配信のため開始していません。「ライブ自動停止」を設定すると自動で録画します）';
-        return;
-      }
-    } catch (e) {
-      return showError(e);
-    }
-    $('start').click();
-  }
+  // 自動開始モード: ポップアップの「ダウンロード」から開かれたら、既定の画質（最高画質）ですぐ開始する
+  if (params.get('auto') === 'click') $('start').click();
 }
 
 init();

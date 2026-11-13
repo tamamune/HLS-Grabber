@@ -6,7 +6,7 @@ import { getThumb } from './lib/thumb.js';
   const list = (await chrome.storage.session.get(k))[k] || [];
   const ul = document.getElementById('list');
 
-  // ダウンロードの自動/手動（自動: HLS 検出時にダウンロードタブを裏で開いて開始）
+  // 手動/自動開始（自動開始: 「ダウンロード」で開いた画面の開始ボタンを自動で押す）
   let mode = 'manual';
   try { mode = (await chrome.storage.local.get('autoMode')).autoMode || 'manual'; } catch {}
   for (const r of document.querySelectorAll('input[name=autoMode]')) {
@@ -88,7 +88,7 @@ import { getThumb } from './lib/thumb.js';
     }).catch(() => {});
     li.querySelector('.dl').onclick = () => {
       const p = new URLSearchParams({ url: item.url, referer: tab.url || '', title: tab.title || 'video' });
-      // 自動DL のときは、開いたらすぐ開始する（ユーザーが押したのでライブでも開始）
+      // 自動開始のときは、開いたらすぐ開始する
       if (document.querySelector('input[name=autoMode]:checked')?.value === 'auto') p.set('auto', 'click');
       chrome.tabs.create({ url: chrome.runtime.getURL('downloader.html?' + p) });
     };
