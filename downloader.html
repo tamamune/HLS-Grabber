@@ -2,82 +2,144 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HLS Grabber</title>
+<link rel="stylesheet" href="ui.css">
 <style>
-  :root { color-scheme: dark; }
-  body { margin: 0; font: 14px system-ui, sans-serif; background: #17181b; color: #e6e6e6; }
-  main { max-width: 760px; margin: 32px auto; padding: 0 20px; }
-  h1 { font-size: 20px; margin: 0 0 16px; }
-  section { background: #222429; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
-  h2 { font-size: 14px; margin: 0 0 10px; color: #aab; font-weight: 600; }
-  .src { word-break: break-all; font-size: 12px; color: #889; }
-  label.opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
-  label.opt:hover { background: #2c2f36; }
-  .sub { color: #889; font-size: 12px; }
-  .note { color: #f0b429; font-size: 12px; margin-top: 8px; }
-  input[type=text], input[type=number] { background: #15161a; color: #eee; border: 1px solid #3a3d44; border-radius: 6px; padding: 7px 9px; font-size: 14px; }
-  input[type=text] { width: 100%; box-sizing: border-box; }
-  input[type=number] { width: 64px; }
-  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  button { background: #3a3d44; color: #eee; border: 0; border-radius: 6px; padding: 9px 16px; cursor: pointer; font-size: 14px; }
-  button:hover:not(:disabled) { background: #4a4e57; }
-  button:disabled { opacity: .45; cursor: default; }
-  button.primary { background: #e53935; }
-  button.primary:hover:not(:disabled) { background: #f4511e; }
-  .bar { height: 10px; background: #15161a; border-radius: 5px; overflow: hidden; margin: 12px 0; }
-  .bar > div { height: 100%; width: 0; background: linear-gradient(90deg, #e53935, #ff7043); transition: width .2s; }
-  .bar.live > div { width: 100% !important; animation: pulse 1.4s ease-in-out infinite; }
-  @keyframes pulse { 50% { opacity: .45; } }
-  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-  .stats div { background: #1a1b1f; border-radius: 6px; padding: 8px 10px; }
-  .stats b { display: block; font-size: 16px; margin-top: 2px; }
-  #status { font-weight: 600; }
-  .err { color: #ff6b6b; }
-  .ok { color: #66bb6a; }
-  [hidden] { display: none !important; }
+  body { font-size: 14px; }
+  .appbar {
+    position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px;
+    padding: 12px 24px; border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(12px);
+  }
+  main { max-width: 820px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 16px; }
+  section.card { padding: 20px 22px; }
+
+  /* ソース */
+  .src {
+    font-family: var(--mono); font-size: 12px; color: var(--muted); word-break: break-all;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px;
+  }
+  #info:not(:empty) { margin-top: 10px; color: var(--muted); font-size: 13px; }
+
+  /* 画質 / トラック選択（タイル） */
+  #options { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+  label.opt {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer;
+    border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface-2);
+    transition: border-color .15s, background-color .15s, box-shadow .15s;
+  }
+  label.opt:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong)); }
+  label.opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent) inset; }
+  label.opt input {
+    appearance: none; flex: none; width: 18px; height: 18px; margin: 0; border-radius: 50%;
+    border: 2px solid var(--border-strong); background: var(--surface); transition: border-color .15s, box-shadow .15s;
+  }
+  label.opt input:checked { border-color: var(--accent); box-shadow: inset 0 0 0 4px var(--surface), inset 0 0 0 10px var(--accent); }
+  label.opt .l { font-weight: 650; }
+  label.opt .sub { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
+  .note {
+    margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12.5px;
+    color: var(--warn); background: var(--warn-soft);
+  }
+
+  /* 保存設定 */
+  .field { display: grid; gap: 6px; margin-bottom: 16px; }
+  .field > span { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .field input[type=text] { width: 100%; }
+  .hint { font-size: 11.5px; color: var(--faint); }
+  .hint code { font-family: var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; color: var(--muted); }
+  .toggles { display: grid; gap: 4px; margin-bottom: 16px; }
+  .toggle {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+    transition: background-color .15s;
+  }
+  .toggle:hover { background: var(--surface-2); }
+  .toggle b { display: block; font-weight: 600; font-size: 13.5px; }
+  .toggle small { color: var(--muted); font-size: 12px; }
+  .footer-row {
+    display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+    padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .num { display: grid; gap: 6px; }
+  .num > span { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .spacer { flex: 1; }
+
+  /* 進行状況 */
+  .status-line { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  #status { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  #status .ok { display: inline-flex; align-items: center; gap: 8px; }
+  #status .ok::before {
+    content: "✓"; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--ok-soft); color: var(--ok); font-size: 13px;
+  }
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 18px; }
+  .stats div { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; }
+  .stats .sub { font-size: 11.5px; color: var(--muted); }
+  .stats b { display: block; font-size: 18px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+
+  @media (max-width: 560px) {
+    .appbar { padding: 10px 16px; }
+    main { padding: 18px 12px 48px; }
+    section.card { padding: 16px; }
+    #start { width: 100%; }
+  }
 </style>
 </head>
 <body>
+<div class="appbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></span>
+    <h1>HLS Grabber <span class="sub">· ダウンロード</span></h1>
+  </div>
+</div>
+
 <main>
-  <h1>HLS Grabber</h1>
-
-  <section>
-    <h2>ソース</h2>
+  <section class="card">
+    <h2 class="section-title">ソース</h2>
     <div class="src" id="src"></div>
-    <div id="info" class="sub" style="margin-top:8px"></div>
+    <div id="info"></div>
   </section>
 
-  <section id="pick" hidden>
-    <h2>画質 / トラック</h2>
+  <section class="card" id="pick" hidden>
+    <h2 class="section-title">画質 / トラック</h2>
     <div id="options"></div>
-    <div id="audioNote" class="note" hidden>※ 選んだ画質は音声が別トラックです。音声は「音声」を選んで別ファイルとして保存してください。</div>
+    <div id="audioNote" class="note" hidden>選んだ画質は音声が別トラックです。「映像と音声を結合」をオンにするか、「音声」を選んで別ファイルとして保存してください。</div>
   </section>
 
-  <section id="settings" hidden>
-    <h2>保存設定</h2>
-    <div class="row" style="margin-bottom:10px">
+  <section class="card" id="settings" hidden>
+    <h2 class="section-title">保存設定</h2>
+    <label class="field">
+      <span>ファイル名</span>
       <input type="text" id="name" placeholder="ファイル名">
+    </label>
+    <label class="field">
+      <span>名前テンプレート</span>
+      <input type="text" id="nameTpl" value="{title}_{date}">
+      <span class="hint">使える変数: <code>{title}</code> <code>{date}</code> <code>{time}</code></span>
+    </label>
+    <div class="toggles">
+      <label class="toggle">
+        <input type="checkbox" id="toMp4">
+        <span><b>MP4に変換して保存</b><small>.ts の場合。サイズ上限なし・ライブ録画にも対応</small></span>
+      </label>
+      <label class="toggle" id="mergeRow" hidden>
+        <input type="checkbox" id="merge" checked>
+        <span><b>映像と音声を結合</b><small>別トラックの音声を1つのMP4にまとめます（VODのみ・1.5GBまで）</small></span>
+      </label>
     </div>
-    <div class="row" style="margin-bottom:10px">
-      <span class="sub">名前テンプレート</span>
-      <input type="text" id="nameTpl" value="{title}_{date}" style="flex:1;width:auto">
-      <span class="sub">{title} {date} {time}</span>
-    </div>
-    <div class="row" style="margin-bottom:10px">
-      <label><input type="checkbox" id="toMp4"> MP4に変換して保存（.ts の場合・サイズ上限なし・ライブも可）</label>
-      <label id="mergeRow" hidden><input type="checkbox" id="merge" checked> 映像と音声を結合</label>
-    </div>
-    <div class="row">
-      <span class="sub">同時接続数</span><input type="number" id="conc" value="6" min="1" max="16">
-      <span class="sub">ライブ自動停止(分, 0=なし)</span><input type="number" id="autostop" value="0" min="0" max="1440">
-      <span style="flex:1"></span>
-      <button class="primary" id="start">ダウンロード開始</button>
+    <div class="footer-row">
+      <label class="num"><span>同時接続数</span><input type="number" id="conc" value="6" min="1" max="16"></label>
+      <label class="num"><span>ライブ自動停止（分・0=なし）</span><input type="number" id="autostop" value="0" min="0" max="1440"></label>
+      <span class="spacer"></span>
+      <button class="primary lg" id="start">ダウンロード開始</button>
     </div>
   </section>
 
-  <section id="progress" hidden>
-    <h2>進行状況</h2>
-    <div id="status">準備中…</div>
+  <section class="card" id="progress" hidden>
+    <h2 class="section-title">進行状況</h2>
+    <div class="status-line"><div id="status">準備中…</div></div>
     <div class="bar" id="bar"><div></div></div>
     <div class="stats">
       <div><span class="sub">セグメント</span><b id="sSeg">0</b></div>
@@ -86,9 +148,9 @@
       <div><span class="sub">長さ</span><b id="sDur">0:00</b></div>
       <div><span class="sub">失敗</span><b id="sFail">0</b></div>
     </div>
-    <div class="row" style="margin-top:14px">
+    <div class="actions">
       <button class="primary" id="stop">停止して保存</button>
-      <button id="cancel">中止（保存しない）</button>
+      <button class="ghost" id="cancel">中止（保存しない）</button>
     </div>
   </section>
 

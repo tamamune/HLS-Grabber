@@ -7,9 +7,12 @@ import { getThumb } from './lib/thumb.js';
   const ul = document.getElementById('list');
 
   // ダウンロードの自動/手動（自動: HLS 検出時にダウンロードタブを裏で開いて開始）
-  const modeSel = document.getElementById('autoMode');
-  try { modeSel.value = (await chrome.storage.local.get('autoMode')).autoMode || 'manual'; } catch {}
-  modeSel.onchange = () => chrome.storage.local.set({ autoMode: modeSel.value });
+  let mode = 'manual';
+  try { mode = (await chrome.storage.local.get('autoMode')).autoMode || 'manual'; } catch {}
+  for (const r of document.querySelectorAll('input[name=autoMode]')) {
+    r.checked = r.value === mode;
+    r.onchange = () => chrome.storage.local.set({ autoMode: r.value });
+  }
 
   document.getElementById('gallery').onclick = () => {
     chrome.tabs.create({ url: chrome.runtime.getURL(`gallery.html?tab=${tab.id}`) });
@@ -62,20 +65,24 @@ import { getThumb } from './lib/thumb.js';
     });
     li.querySelector('.name').textContent = name;
     li.querySelector('.url').textContent = item.url;
+    li.querySelector('.url').title = item.url;
     // 種別・画質数・長さを表示（取得できない場合は何も出さない）
     fetch(item.url, { cache: 'no-store' }).then((r) => r.text()).then((t) => {
-      let label = '';
+      let label = '', cls = '';
       if (/#EXT-X-STREAM-INF/.test(t)) {
         const n = (t.match(/#EXT-X-STREAM-INF/g) || []).length;
-        label = `マスター（${n}画質）← 画質を選べます`;
-      } else {
+        label = `マスター · ${n}画質から選択`;
+        cls = 'info';
+      } else if (/#EXT-X-ENDLIST/.test(t)) {
         const total = [...t.matchAll(/#EXTINF:([\d.]+)/g)].reduce((a, m) => a + parseFloat(m[1]), 0);
-        const m = Math.floor(total / 60);
-        label = /#EXT-X-ENDLIST/.test(t) ? `VOD・約${m}分` : 'ライブ配信';
+        label = `VOD · 約${Math.max(1, Math.round(total / 60))}分`;
+        cls = 'ok';
+      } else {
+        label = 'ライブ配信';
+        cls = 'live';
       }
       const d = document.createElement('div');
-      d.className = 'url';
-      d.style.color = '#f0b429';
+      d.className = `tag ${cls}`;
       d.textContent = label;
       li.querySelector('.url').after(d);
     }).catch(() => {});
@@ -108,6 +115,7 @@ import { getThumb } from './lib/thumb.js';
     li.querySelector('.thumb').appendChild(thumb);
     li.querySelector('.name').textContent = label;
     li.querySelector('.url').textContent = item.url;
+    li.querySelector('.url').title = item.url;
     const dl = li.querySelector('.dl');
     dl.onclick = async () => {
       try {

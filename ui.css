@@ -1,0 +1,168 @@
+/* HLS Grabber 共通デザイン（ダーク／ライトは OS 設定に追従） */
+:root {
+  color-scheme: light dark;
+  --bg: #0b0c10;
+  --surface: #14161c;
+  --surface-2: #1b1e26;
+  --surface-3: #252935;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.13);
+  --text: #eceef4;
+  --muted: #9ba2b4;
+  --faint: #6a7185;
+  --accent: #ff4757;
+  --accent-2: #ff7b45;
+  --accent-soft: rgba(255, 71, 87, 0.16);
+  --ok: #34d399;
+  --ok-soft: rgba(52, 211, 153, 0.14);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.14);
+  --err: #f87171;
+  --err-soft: rgba(248, 113, 113, 0.12);
+  --info: #7aa7ff;
+  --info-soft: rgba(122, 167, 255, 0.14);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 30px -10px rgba(0, 0, 0, 0.45);
+  --font: "Segoe UI Variable Text", "Segoe UI", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f5f8;
+    --surface: #ffffff;
+    --surface-2: #f2f4f7;
+    --surface-3: #e6e9ef;
+    --border: rgba(15, 23, 42, 0.08);
+    --border-strong: rgba(15, 23, 42, 0.15);
+    --text: #121826;
+    --muted: #586174;
+    --faint: #8b93a5;
+    --accent: #e8384a;
+    --accent-2: #f2672f;
+    --accent-soft: rgba(232, 56, 74, 0.1);
+    --ok: #059669;
+    --ok-soft: rgba(5, 150, 105, 0.1);
+    --warn: #b45309;
+    --warn-soft: rgba(217, 119, 6, 0.12);
+    --err: #dc2626;
+    --err-soft: rgba(220, 38, 38, 0.08);
+    --info: #2563eb;
+    --info-soft: rgba(37, 99, 235, 0.1);
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 10px 30px -12px rgba(16, 24, 40, 0.12);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  font: 13px/1.55 var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+::selection { background: var(--accent-soft); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* スクロールバー */
+* { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+
+/* ブランド */
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; margin: 0; white-space: nowrap; }
+.brand .sub { font-weight: 500; color: var(--muted); }
+.logo {
+  flex: none; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 16px -6px var(--accent);
+}
+.logo svg { width: 16px; height: 16px; }
+
+/* ボタン */
+button {
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 32px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text);
+  cursor: pointer; white-space: nowrap;
+  transition: background-color .15s, border-color .15s, box-shadow .15s, filter .15s, transform .06s;
+}
+button:hover:not(:disabled) { background: var(--surface-3); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { opacity: .45; cursor: default; }
+button.primary {
+  border-color: transparent; color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 18px -8px var(--accent);
+}
+button.primary:hover:not(:disabled) { background: linear-gradient(135deg, var(--accent), var(--accent-2)); filter: brightness(1.08); }
+button.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+button.ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+button.sm { height: 28px; padding: 0 11px; font-size: 12px; }
+button.lg { height: 42px; padding: 0 22px; font-size: 14px; }
+
+/* 入力 */
+input[type=text], input[type=number], select {
+  font: inherit; color: var(--text); height: 36px; padding: 0 12px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface-2);
+  transition: border-color .15s, box-shadow .15s, background-color .15s;
+}
+input[type=text]:focus, input[type=number]:focus, select:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--surface);
+}
+input[type=number] { width: 84px; font-variant-numeric: tabular-nums; }
+input[type=range] { accent-color: var(--accent); }
+
+/* チェックボックスはトグルスイッチ */
+input[type=checkbox] {
+  appearance: none; flex: none; position: relative; margin: 0; cursor: pointer;
+  width: 36px; height: 20px; border-radius: 999px; background: var(--surface-3);
+  border: 1px solid var(--border-strong); transition: background-color .2s, border-color .2s;
+}
+input[type=checkbox]::before {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); transition: transform .2s;
+}
+input[type=checkbox]:checked { background: var(--accent); border-color: transparent; }
+input[type=checkbox]:checked::before { transform: translateX(16px); }
+
+/* カード・見出し */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); margin: 0 0 12px;
+}
+
+/* タグ */
+.tag {
+  display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; background: var(--surface-3); color: var(--muted); white-space: nowrap;
+}
+.tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .9; }
+.tag.live { background: var(--accent-soft); color: var(--accent); }
+.tag.info { background: var(--info-soft); color: var(--info); }
+.tag.ok { background: var(--ok-soft); color: var(--ok); }
+
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); }
+.ok { color: var(--ok); }
+.err:empty { display: none; }
+.err {
+  color: var(--err); background: var(--err-soft); border: 1px solid color-mix(in srgb, var(--err) 30%, transparent);
+  border-radius: var(--radius-sm); padding: 10px 14px; white-space: pre-wrap;
+}
+
+/* 進捗バー */
+.bar { height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+.bar > div {
+  height: 100%; width: 0; border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width .25s ease;
+}
+.bar.live > div {
+  width: 100% !important;
+  background: repeating-linear-gradient(-45deg, var(--accent) 0 12px, var(--accent-2) 12px 24px);
+  background-size: 34px 34px; animation: stripes 1s linear infinite;
+}
+@keyframes stripes { to { background-position: 34px 0; } }

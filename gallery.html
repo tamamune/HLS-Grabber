@@ -2,32 +2,52 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HLS Grabber - ギャラリー</title>
+<link rel="stylesheet" href="ui.css">
 <style>
-  :root { color-scheme: dark; }
-  body { margin: 0; font: 14px system-ui, sans-serif; background: #17181b; color: #e6e6e6; }
-  header { position: sticky; top: 0; z-index: 2; display: flex; gap: 12px; align-items: center; padding: 10px 20px; background: #1e1f22; border-bottom: 1px solid #333; }
-  header h1 { font-size: 16px; margin: 0; flex: 1; }
-  header label { color: #aab; font-size: 12px; display: flex; gap: 6px; align-items: center; }
-  button { background: #3a3d44; color: #eee; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
-  button:hover { background: #4a4e57; }
-  button.primary { background: #e53935; }
-  button.primary:hover { background: #f4511e; }
-  main { padding: 16px 20px 40px; }
-  h2 { font-size: 14px; color: #aab; margin: 24px 0 10px; }
+  body { font-size: 14px; }
+  header {
+    position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 12px 24px; border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(12px);
+  }
+  header .brand { flex: 1; }
+  .size {
+    display: flex; gap: 10px; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); font-size: 12px; font-weight: 600;
+  }
+  .size input { width: 120px; }
+  main { padding: 8px 24px 56px; }
+  h2 {
+    display: flex; align-items: center; gap: 8px; margin: 28px 0 12px;
+    font-size: 13px; font-weight: 700; letter-spacing: .02em; color: var(--muted);
+  }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--size, 360px), 1fr)); gap: 14px; }
-  .card { background: #1e1f22; border: 1px solid #2c2d31; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
-  .media { background: #0e0f11; height: calc(var(--size, 360px) * 0.9); display: flex; align-items: center; justify-content: center; }
-  .media img, .media video { max-width: 100%; max-height: 100%; object-fit: contain; }
-  .info { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
-  .info .label { flex: 1; min-width: 0; font-size: 12px; color: #aab; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .empty { padding: 60px 0; color: #889; text-align: center; }
+  .card { overflow: hidden; display: flex; flex-direction: column; transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+  .media {
+    height: calc(var(--size, 360px) * 0.9); display: flex; align-items: center; justify-content: center;
+    background:
+      linear-gradient(45deg, var(--surface-2) 25%, transparent 25%, transparent 75%, var(--surface-2) 75%) 0 0 / 20px 20px,
+      linear-gradient(45deg, var(--surface-2) 25%, transparent 25%, transparent 75%, var(--surface-2) 75%) 10px 10px / 20px 20px,
+      var(--bg);
+  }
+  .media img, .media video { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .info { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  .info .label { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .info button { height: 28px; padding: 0 14px; font-size: 12px; }
+  .empty { padding: 80px 0; color: var(--muted); text-align: center; }
+  @media (max-width: 560px) { header, main { padding-left: 14px; padding-right: 14px; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>検出したメディア</h1>
-  <label>サイズ <input type="range" id="size" min="200" max="800" step="20" value="360"></label>
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></span>
+    <h1>検出したメディア</h1>
+  </div>
+  <label class="size">サイズ <input type="range" id="size" min="200" max="800" step="20" value="360"></label>
   <button id="reload">更新</button>
   <button id="all" class="primary">画像をすべて保存</button>
 </header>

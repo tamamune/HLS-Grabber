@@ -14,6 +14,7 @@
 - `downloader.html` / `downloader.js` — ダウンロード・録画本体（OPFS一時保存、ffmpeg.wasm連携）
 - `mediadl.html` / `mediadl.js` — X/Instagram等の単体メディア保存
 - `gallery.html` / `gallery.js` — X/Instagram の画像・動画を大きなサムネで表示して保存する別タブ（ポップアップの「大きく表示」から開く。サイズスライダー、画像一括保存あり）
+- `ui.css` — 全画面共通のデザイン（色トークン・ボタン・トグル・カード等。ダーク/ライトは OS 設定に追従）。画面ごとの固有スタイルは各 HTML の `<style>` に書く
 - `lib/` — 同梱ライブラリ（ffmpeg.wasm 0.12＝音声結合・サムネ用、mux-mp4.min.js＝mux.js 6.3.0、TS→MP4 逐次変換用）
 
 ## 作業ルール（PC間の同期）
@@ -24,6 +25,7 @@
 5. 他PCで知っておくべきこと（ハマりどころ、未完了タスク、設計判断）は下の「引き継ぎメモ」に追記する。
 
 ## 引き継ぎメモ
+- 2026-11-13: 画面デザインを刷新（共通 `ui.css` を追加し popup/downloader/gallery/mediadl を作り直し）。JS が参照する ID・クラスは維持。ポップアップの自動/手動は select からラジオのセグメント（`input[name=autoMode]`）に変更。モックで見た目確認済み、拡張としての実機確認は未。
 - 2026-11-13: ダウンロード自動/手動設定を追加（`chrome.storage.local` の `autoMode`。downloader の `settings` とは別キー＝saveSettings で上書きされないため）。background の scheduleAuto/runAuto、downloader.html?auto=1 で自動開始。未実機確認。
 <!-- 新しいものを上に追記。例: 2026-11-09 (PC名) 内容 -->
 - 2026-11-12: TS→MP4 変換を ffmpeg.wasm（1.5GB上限）から mux.js の逐次変換に変更し上限を撤廃（未実機確認）。ffmpeg.wasm は wasm32 のメモリ上限（入力＋出力をメモリに載せる）のため 5GB 等には上げられない。音声結合は引き続き ffmpeg.wasm で 1.5GB まで。

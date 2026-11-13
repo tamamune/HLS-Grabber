@@ -2,39 +2,77 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<link rel="stylesheet" href="ui.css">
 <style>
-  body { width: 420px; margin: 0; font: 13px system-ui, sans-serif; background: #1e1f22; color: #e6e6e6; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid #333; }
-  h1 { font-size: 14px; margin: 0; }
-  button { background: #3a3d44; color: #eee; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
-  button:hover { background: #4a4e57; }
-  select { background: #3a3d44; color: #eee; border: 0; border-radius: 6px; padding: 5px 6px; font-size: 12px; cursor: pointer; }
-  button.primary { background: #e53935; }
-  button.primary:hover { background: #f4511e; }
-  ul { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow: auto; }
-  li { padding: 10px 12px; border-bottom: 1px solid #2c2d31; }
-  .url { word-break: break-all; color: #aab; font-size: 11px; margin: 4px 0 8px; }
-  .name { font-weight: 600; }
-  .row { display: flex; gap: 6px; }
-  .item { display: flex; gap: 10px; align-items: flex-start; }
-  .thumb { flex: none; width: 112px; height: 63px; border-radius: 6px; background: #15161a; color: #667; font-size: 11px;
-    display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; white-space: pre-line; }
-  li.heading { position: sticky; top: 0; background: #26282d; font-weight: 600; font-size: 12px; color: #aab; padding: 6px 12px; }
-  .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; }
+  body { width: 460px; }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .tools { display: flex; align-items: center; gap: 6px; }
+
+  /* 自動/手動のセグメント切り替え */
+  .seg { display: inline-flex; padding: 2px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+  .seg label {
+    position: relative; display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600; color: var(--muted); cursor: pointer; transition: background-color .15s, color .15s;
+  }
+  .seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .seg label:has(input:checked) { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+  .seg label:has(input[value=auto]:checked) { background: var(--accent); color: #fff; }
+  .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  ul { list-style: none; margin: 0; padding: 6px; max-height: 500px; overflow: auto; }
+  li { padding: 10px; border-radius: 12px; transition: background-color .15s; }
+  li + li:not(.heading) { margin-top: 2px; }
+  li:not(.heading):hover { background: var(--surface); }
+  li.heading {
+    position: sticky; top: -6px; z-index: 1; margin: 4px -6px 2px; padding: 8px 16px 6px; border-radius: 0;
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--faint);
+    background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px);
+  }
+  li.heading:first-child { margin-top: -6px; }
+
+  .item { display: flex; gap: 12px; align-items: flex-start; }
+  .thumb {
+    flex: none; width: 128px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden;
+    background: var(--surface-2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; text-align: center; white-space: pre-line;
+    color: var(--faint); font-size: 11px; line-height: 1.35;
+  }
+  .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
   .body { flex: 1; min-width: 0; }
-  .empty { padding: 24px 12px; color: #889; text-align: center; line-height: 1.6; }
+  .name { font-weight: 650; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .url {
+    font-family: var(--mono); font-size: 10.5px; color: var(--faint); margin: 2px 0 8px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .body .tag { margin: -2px 0 8px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .row button { height: 28px; padding: 0 12px; font-size: 12px; }
+
+  .empty { padding: 36px 24px 40px; color: var(--muted); text-align: center; line-height: 1.7; }
+  .empty::before {
+    content: ""; display: block; width: 44px; height: 44px; margin: 0 auto 12px; border-radius: 14px;
+    background: var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba2b4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='3'/%3E%3Cpath d='m10 9 5 3-5 3z'/%3E%3C/svg%3E") center / 22px no-repeat;
+    border: 1px solid var(--border);
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>HLS Grabber</h1>
-  <span>
-    <select id="autoMode" title="HLS動画を検出したときの動作">
-      <option value="manual">DL: 手動</option>
-      <option value="auto">DL: 自動</option>
-    </select>
-    <button id="gallery">大きく表示</button> <button id="clear">クリア</button>
-  </span>
+  <div class="brand">
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></span>
+    <h1>HLS Grabber</h1>
+  </div>
+  <div class="tools">
+    <div class="seg" role="radiogroup" title="HLS動画を検出したときの動作">
+      <label><input type="radio" name="autoMode" value="manual">手動</label>
+      <label><input type="radio" name="autoMode" value="auto">自動DL</label>
+    </div>
+    <button id="gallery" class="sm" title="X / Instagram のメディアを大きく表示">大きく表示</button>
+    <button id="clear" class="sm ghost" title="一覧をクリア">クリア</button>
+  </div>
 </header>
 <ul id="list"></ul>
 <script type="module" src="popup.js"></script>
