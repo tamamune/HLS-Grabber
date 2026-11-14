@@ -530,7 +530,15 @@ async function init() {
   };
 
   // 自動開始モード: ポップアップの「ダウンロード」から開かれたら、既定の画質（最高画質）ですぐ開始する
-  if (params.get('auto') === 'click') $('start').click();
+  // URL の指定に加えて保存済みの設定も見る（この画面はポップアップの「ダウンロード」からしか開かないため）
+  let auto = params.get('auto') === 'click';
+  if (!auto) {
+    try { auto = (await chrome.storage.local.get('autoMode')).autoMode === 'auto'; } catch {}
+  }
+  if (auto && !$('start').disabled) {
+    console.log('[HLS Grabber] 自動開始');
+    setTimeout(() => $('start').click(), 0);
+  }
 }
 
-init();
+init().catch((e) => showError(e));
